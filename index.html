@@ -465,6 +465,25 @@
         .join(" ");
     }
 
+    // Normaliza texto para chaves: maiúsculo, sem acentos, espaços simples
+    function normalizeKey(str) {
+      return (str || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    // Remove prefixo "CRE " se existir
+    function stripCrePrefix(str) {
+      let s = (str || "").trim();
+      if (/^CRE\s+/i.test(s)) {
+        s = s.replace(/^CRE\s+/i, "");
+      }
+      return s;
+    }
+
     // ---------- Carga dos dados ----------
     async function loadAllData() {
       const [dadosCreText, municipiosCreText, geojsonResp] = await Promise.all([
@@ -476,13 +495,13 @@
       const dadosCreRows = parseCsvSemicolon(dadosCreText);
       const municipiosCreRows = parseCsvSemicolon(municipiosCreText);
 
-      // monta base de CREs
+      // CREs a partir do dados_cre.csv
       const creBase = {};
       for (const row of dadosCreRows) {
-        const creName = (row["CRE"] || "").trim();
-        if (!creName) continue;
-        creBase[creName] = {
-          cre: creName,
+        const creFullName = (row["CRE"] || "").trim();
+        if (!creFullName) continue;
+        creBase[creFullName] = {
+          cre: creFullName,
           publico_ee: toInt(row["Publico_EE"]),
           num_escolas: toInt(row["Num_Escolas"]),
           num_escolas_aee: toInt(row["Num_Escolas_AEE"]),
@@ -493,20 +512,43 @@
         };
       }
 
-      // monta mapping municipio -> CRE
-      const municipiosCreMap = {};
-      for (const row of municipiosCreRows) {
-        const mun = (row["Municipio"] || "").trim();
-        const cre = (row["CRE"] || "").trim();
-        if (!mun || !cre) continue;
-        municipiosCreMap[mun.toUpperCase()] = cre;
+      // mapa: "CAMPOS NOVOS" -> "CRE Campos Novos" (nome completo)
+      const creKeyByShortKey = {};
+      for (const creFullName of Object.keys(creBase)) {
+        const shortName = stripCrePrefix(creFullName); // "Campos Novos"
+        const shortKey = normalizeKey(shortName);      // "CAMPOS NOVOS"
+        creKeyByShortKey[shortKey] = creFullName;
       }
 
-      // municipios por CRE (para listar no popup)
+      // mapping municipio -> CRE (nome completo)
+      const municipiosCreMap = {};
       const municipiosPorCre = {};
-      for (const [munUpper, cre] of Object.entries(municipiosCreMap)) {
-        if (!municipiosPorCre[cre]) municipiosPorCre[cre] = [];
-        municipiosPorCre[cre].push(titleCase(munUpper));
+
+      for (const row of municipiosCreRows) {
+        const munRaw =
+          row["Municipio"] ||
+          row["Município"] ||
+          row["MUNICIPIO"] ||
+          row["MUNICÍPIO"] ||
+          "";
+        const creShortRaw = row["CRE"] || row["Cre"] || "";
+
+        const munName = munRaw.trim();
+        const creShort = creShortRaw.trim();
+        if (!munName || !creShort) continue;
+
+        const munKey = normalizeKey(munName);
+        const creShortKey = normalizeKey(creShort);
+
+        // se achar no mapa de CREs, usa o nome completo; senão, vai com o que veio
+        const creFullName = creKeyByShortKey[creShortKey] || creShort;
+
+        municipiosCreMap[munKey] = creFullName;
+
+        if (!municipiosPorCre[creFullName]) {
+          municipiosPorCre[creFullName] = [];
+        }
+        municipiosPorCre[creFullName].push(titleCase(munName));
       }
 
       return { creBase, municipiosCreMap, municipiosPorCre, geojson: geojsonResp };
@@ -773,8 +815,9 @@
       }
 
       function style(feature) {
-        const munName = (feature.properties.NM_MUN || "").toUpperCase();
-        const creName = municipiosCreMap[munName];
+        const munNameRaw = feature.properties.NM_MUN || "";
+        const munKey = normalizeKey(munNameRaw);
+        const creName = municipiosCreMap[munKey];
         const fillColor = creName ? getCreColor(creName) : "#f0f0f0";
 
         return {
@@ -871,11 +914,12 @@
       }
 
       function onEachFeature(feature, layer) {
-        const munName = (feature.properties.NM_MUN || "").toUpperCase();
-        const creName = municipiosCreMap[munName];
+        const munNameRaw = feature.properties.NM_MUN || "";
+        const munKey = normalizeKey(munNameRaw);
+        const creName = municipiosCreMap[munKey];
 
         if (!creName) {
-          layer.bindTooltip(titleCase(munName), { sticky: true });
+          layer.bindTooltip(titleCase(munNameRaw), { sticky: true });
           return;
         }
 
@@ -907,4 +951,3 @@
   </script>
 </body>
 </html>
-
