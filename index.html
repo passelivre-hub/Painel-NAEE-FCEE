@@ -740,147 +740,167 @@
     }
 
     // ---------- Mapa ----------
-    function buildMap(geojson, creData, municipiosCreMap, municipiosPorCre) {
-      const map = L.map("map", {
-        scrollWheelZoom: false,
-        zoomControl: true,
-      }).setView([-27.2, -50.9], 7);
+function buildMap(geojson, creData, municipiosCreMap, municipiosPorCre) {
+  const map = L.map("map", {
+    scrollWheelZoom: false,
+    zoomControl: true,
+  }).setView([-27.2, -50.9], 7);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: "© OpenStreetMap",
-      }).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: "© OpenStreetMap",
+  }).addTo(map);
 
-      const CRE_COLORS = {};
-      const GOV_GREENS = ["#a6ce39", "#3db44a"];
-      let creIndex = 0;
+  const CRE_COLORS = {};
+  const GOV_GREENS = ["#a6ce39", "#3db44a"];
+  let creIndex = 0;
 
-      function getCreColor(creName) {
-        const d = creData[creName];
-        if (!d) return "#e0e0e0";
+  function getCreColor(creName) {
+    const d = creData[creName];
+    if (!d) return "#e0e0e0";
 
-        const hasAss = (d.total_assessorias || 0) > 0;
-        if (!hasAss) {
-          return getComputedStyle(
-            document.documentElement
-          ).getPropertyValue("--gray-assessorias-zero");
-        }
+    const hasAss = (d.total_assessorias || 0) > 0;
+    if (!hasAss) {
+      return getComputedStyle(
+        document.documentElement
+      ).getPropertyValue("--gray-assessorias-zero");
+    }
 
-        if (!CRE_COLORS[creName]) {
-          CRE_COLORS[creName] = GOV_GREENS[creIndex % GOV_GREENS.length];
-          creIndex += 1;
-        }
-        return CRE_COLORS[creName];
-      }
+    if (!CRE_COLORS[creName]) {
+      CRE_COLORS[creName] = GOV_GREENS[creIndex % GOV_GREENS.length];
+      creIndex += 1;
+    }
+    return CRE_COLORS[creName];
+  }
 
-      function style(feature) {
-        const munNameRaw = feature.properties.NM_MUN || "";
-        const munKey = normalizeKey(munNameRaw);
-        const creName = municipiosCreMap[munKey];
-        const fillColor = creName ? getCreColor(creName) : "#f0f0f0";
+  function style(feature) {
+    // 👇 AQUI: pega o nome do município do GeoJSON
+    const munNameRaw =
+      feature.properties.name ||  // teu arquivo usa "name"
+      feature.properties.NM_MUN || // caso algum dia venha com NM_MUN
+      feature.properties.description || // fallback
+      "";
 
-        return {
-          color: "#ffffff",
-          weight: 0.8,
-          fillColor,
-          fillOpacity: 0.9,
-        };
-      }
+    const munKey = normalizeKey(munNameRaw);
+    const creName = municipiosCreMap[munKey];
+    const fillColor = creName ? getCreColor(creName) : "#f0f0f0";
 
-      function buildPopup(creName) {
-        const d = creData[creName];
-        if (!d) {
-          return `<div class="popup-cre"><strong>${creName}</strong><br/>Sem dados cadastrados.</div>`;
-        }
+    return {
+      color: "#ffffff",
+      weight: 0.8,
+      fillColor,
+      fillOpacity: 0.9,
+    };
+  }
 
-        const muniList = (municipiosPorCre[creName] || []).slice().sort();
-        const muniText = muniList.join(", ");
-        const percFora = d.perc_fora_aee || 0;
-        const percEscSem = d.perc_escolas_sem_aee || 0;
+  function buildPopup(creName) {
+    const d = creData[creName];
+    if (!d) {
+      return `<div class="popup-cre"><strong>${creName}</strong><br/>Sem dados cadastrados.</div>`;
+    }
 
-        return `
-          <div class="popup-cre">
-            <h3>${creName}</h3>
-            <small>Indicadores do público da Educação Especial e das assessorias realizadas.</small>
-            <div class="popup-grid">
-              <div class="popup-metric">
-                <span class="label">📚 Público EE</span>
-                <strong>${formatNumber(d.publico_ee)}</strong>
-              </div>
-              <div class="popup-metric">
-                <span class="label">👩‍🏫 Estudantes no AEE</span>
-                <strong>${formatNumber(d.estudantes_aee)}</strong>
-              </div>
-              <div class="popup-metric">
-                <span class="label">🏫 Escolas</span>
-                <strong>${formatNumber(d.num_escolas)}</strong>
-              </div>
-              <div class="popup-metric">
-                <span class="label">🏫 com AEE</span>
-                <strong>${formatNumber(d.num_escolas_aee)}</strong>
-              </div>
-              <div class="popup-metric">
-                <span class="label">👥 Participantes em assessorias</span>
-                <strong>${formatNumber(d.participantes)}</strong>
-              </div>
-              <div class="popup-metric">
-                <span class="label">📌 Assessorias (P / O)</span>
-                <strong>${formatNumber(
-                  d.assessorias_presenciais
-                )} / ${formatNumber(d.assessorias_online)}</strong>
-              </div>
-            </div>
+    const muniList = (municipiosPorCre[creName] || []).slice().sort();
+    const muniText = muniList.join(", ");
+    const percFora = d.perc_fora_aee || 0;
+    const percEscSem = d.perc_escolas_sem_aee || 0;
 
-            <div class="popup-progress">
-              <span class="label">
-                Estudantes do público EE <strong>sem matrícula no AEE</strong>:
-                <strong>${formatNumber(
-                  d.estudantes_fora_aee
-                )}</strong> (${formatPercent(percFora)})
-              </span>
-              <div class="progress-bar">
-                <div class="progress-bar-fill" style="width:${Math.min(
-                  percFora,
-                  100
-                )}%;"></div>
-              </div>
-            </div>
-
-            <div class="popup-progress">
-              <span class="label">
-                Escolas <strong>sem oferta de AEE</strong>:
-                <strong>${formatNumber(
-                  d.escolas_sem_aee
-                )}</strong> (${formatPercent(percEscSem)})
-              </span>
-              <div class="progress-bar">
-                <div class="progress-bar-fill" style="width:${Math.min(
-                  percEscSem,
-                  100
-                )}%;"></div>
-              </div>
-            </div>
-
-            ${
-              muniList.length
-                ? `<div class="popup-municipios">
-                     <strong>Municípios da CRE:</strong> ${muniText}
-                   </div>`
-                : ""
-            }
+    return `
+      <div class="popup-cre">
+        <h3>${creName}</h3>
+        <small>Indicadores do público da Educação Especial e das assessorias realizadas.</small>
+        <div class="popup-grid">
+          <div class="popup-metric">
+            <span class="label">📚 Público EE</span>
+            <strong>${formatNumber(d.publico_ee)}</strong>
           </div>
-        `;
-      }
+          <div class="popup-metric">
+            <span class="label">👩‍🏫 Estudantes no AEE</span>
+            <strong>${formatNumber(d.estudantes_aee)}</strong>
+          </div>
+          <div class="popup-metric">
+            <span class="label">🏫 Escolas</span>
+            <strong>${formatNumber(d.num_escolas)}</strong>
+          </div>
+          <div class="popup-metric">
+            <span class="label">🏫 com AEE</span>
+            <strong>${formatNumber(d.num_escolas_aee)}</strong>
+          </div>
+          <div class="popup-metric">
+            <span class="label">👥 Participantes em assessorias</span>
+            <strong>${formatNumber(d.participantes)}</strong>
+          </div>
+          <div class="popup-metric">
+            <span class="label">📌 Assessorias (P / O)</span>
+            <strong>${formatNumber(
+              d.assessorias_presenciais
+            )} / ${formatNumber(d.assessorias_online)}</strong>
+          </div>
+        </div>
 
-      function onEachFeature(feature, layer) {
-        const munNameRaw = feature.properties.NM_MUN || "";
-        const munKey = normalizeKey(munNameRaw);
-        const creName = municipiosCreMap[munKey];
+        <div class="popup-progress">
+          <span class="label">
+            Estudantes do público EE <strong>sem matrícula no AEE</strong>:
+            <strong>${formatNumber(
+              d.estudantes_fora_aee
+            )}</strong> (${formatPercent(percFora)})
+          </span>
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:${Math.min(
+              percFora,
+              100
+            )}%;"></div>
+          </div>
+        </div>
 
-        if (!creName) {
-          layer.bindTooltip(titleCase(munNameRaw), { sticky: true });
-          return;
+        <div class="popup-progress">
+          <span class="label">
+            Escolas <strong>sem oferta de AEE</strong>:
+            <strong>${formatNumber(
+              d.escolas_sem_aee
+            )}</strong> (${formatPercent(percEscSem)})
+          </span>
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:${Math.min(
+              percEscSem,
+              100
+            )}%;"></div>
+          </div>
+        </div>
+
+        ${
+          muniList.length
+            ? `<div class="popup-municipios">
+                 <strong>Municípios da CRE:</strong> ${muniText}
+               </div>`
+            : ""
         }
+      </div>
+    `;
+  }
+
+  function onEachFeature(feature, layer) {
+    const munNameRaw =
+      feature.properties.name ||
+      feature.properties.NM_MUN ||
+      feature.properties.description ||
+      "";
+
+    const munKey = normalizeKey(munNameRaw);
+    const creName = municipiosCreMap[munKey];
+
+    if (!creName) {
+      layer.bindTooltip(titleCase(munNameRaw), { sticky: true });
+      return;
+    }
+
+    layer.on("click", () => {
+      const html = buildPopup(creName);
+      layer.bindPopup(html, { maxWidth: 360 }).openPopup();
+    });
+  }
+
+  L.geoJSON(geojson, { style, onEachFeature }).addTo(map);
+}
 
         layer.on("click", () => {
           const html = buildPopup(creName);
@@ -910,3 +930,4 @@
   </script>
 </body>
 </html>
+
