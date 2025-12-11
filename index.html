@@ -470,7 +470,7 @@
       const [dadosCreText, municipiosCreText, geojsonResp] = await Promise.all([
         fetch("static/data/dados_cre.csv").then((r) => r.text()),
         fetch("static/data/municipios_por_cre.csv").then((r) => r.text()),
-        fetch("static/data/sc_municipiors.geojson").then((r) => r.json()),
+        fetch("static/data/sc_municipios.geojson").then((r) => r.json()),
       ]);
 
       const dadosCreRows = parseCsvSemicolon(dadosCreText);
@@ -907,3 +907,4 @@
   </script>
 </body>
 </html>
+
