@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel de Assessorias do SAEEX/NAEE - FCEE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --green-light: #a6ce39;
+      --green-dark: #3db44a;
+      --bg-page: #f5f5f7;
+      --bg-card: #ffffff;
+      --border-soft: #e0e0e0;
+      --text-main: #222222;
+      --text-muted: #666666;
+      --accent: #006699;
+      --gray-assessorias-zero: #b0b0b0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+    }
+
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .logos {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logos img {
+      height: 46px;
+      object-fit: contain;
+    }
+
+    .title-block {
+      text-align: center;
+      flex: 1;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .title-block p {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .title-block {
+        text-align: left;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card h2 span.emoji {
+      font-size: 1.2rem;
+    }
+
+    .map-container {
+      height: 520px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-soft);
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .summary-card {
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-soft);
+      background: linear-gradient(
+        135deg,
+        rgba(166, 206, 57, 0.08),
+        rgba(61, 180, 74, 0.02)
+      );
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .summary-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .summary-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .summary-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .chart-card {
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--border-soft);
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .chart-header .icon-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chart-header .icon-label span.icon {
+      font-size: 1.2rem;
+    }
+
+    .chart-wrapper {
+      width: 100%;
+      height: 170px;
+    }
+
+    /* Popup CRE */
+    .popup-cre {
+      font-size: 0.8rem;
+      max-width: 360px;
+    }
+
+    .popup-cre h3 {
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      color: var(--accent);
+    }
+
+    .popup-cre small {
+      color: var(--text-muted);
+    }
+
+    .popup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .popup-metric {
+      border-radius: 8px;
+      padding: 6px;
+      background: #f6f8f6;
+    }
+
+    .popup-metric span.label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .popup-metric strong {
+      font-size: 0.9rem;
+    }
+
+    .popup-progress {
+      margin-top: 8px;
+    }
+
+    .popup-progress span.label {
+      display: block;
+      font-size: 0.7rem;
+      margin-bottom: 2px;
+      color: var(--text-muted);
+    }
+
+    .popup-progress span.label strong {
+      color: var(--text-main);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: #e5e5e5;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--green-light), var(--green-dark));
+    }
+
+    .popup-municipios {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .popup-municipios strong {
+      color: var(--text-main);
+    }
+
+    footer {
+      margin-top: 12px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <header>
+      <div class="logos">
+        <img src="{{ url_for('static', filename='img/logo_fcee.png') }}" alt="FCEE" />
+      </div>
+      <div class="title-block">
+        <h1>Painel de Assessorias do SAEEX/NAEE - FCEE</h1>
+        <p>
+          Coordenadorias Regionais de Educação atendidas em Santa Catarina – dados
+          consolidados do Núcleo de Atendimento Educacional Especializado.
+        </p>
+      </div>
+      <div class="logos">
+        <img
+          src="{{ url_for('static', filename='img/logo_gov_sc.png') }}"
+          alt="Governo de Santa Catarina"
+        />
+      </div>
+    </header>
+
+    <main>
+      <!-- Coluna esquerda: mapa -->
+      <section class="card">
+        <h2>
+          <span class="emoji">🗺️</span> Mapa das Coordenadorias Regionais de Educação (CRE)
+        </h2>
+        <div class="map-container">
+          <div id="map"></div>
+        </div>
+        <div class="legend">
+          <div class="legend-item">
+            <span class="legend-color" style="background:#a6ce39;"></span>
+            <span>CRE com assessorias (verde claro)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background:#3db44a;"></span>
+            <span>CRE com assessorias (verde escuro)</span>
+          </div>
+          <div class="legend-item">
+            <span
+              class="legend-color"
+              style="background:var(--gray-assessorias-zero);"
+            ></span>
+            <span>CRE sem assessorias</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Coluna direita: síntese e gráficos -->
+      <section class="card">
+        <h2>
+          <span class="emoji">📊</span> Síntese geral das assessorias em SC
+        </h2>
+
+        <div class="summary-grid" id="summary-grid"></div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="icon-label">
+                <span class="icon">📚</span>
+                <span>Estudantes do público EE – AEE</span>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartEstudantes"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="icon-label">
+                <span class="icon">🏫</span>
+                <span>Escolas com e sem AEE</span>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartEscolas"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="icon-label">
+                <span class="icon">🧑‍🏫</span>
+                <span>Assessorias presenciais e on-line</span>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartAssessorias"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Fonte: FCEE – SAEEX/NAEE. Painel em desenvolvimento (dados sujeitos a
+      atualização).
+    </footer>
+  </div>
+
+  <script>
+    // Dados injetados pelo Flask
+    const CRE_DATA = {{ cre_data_json|safe }};
+    const TOTALS = {{ totals_json|safe }};
+    const MUNICIPIOS_CRE = {{ municipios_cre_json|safe }};
+    const GOV_GREENS = {{ gov_greens_json|safe }};
+
+    // Pré-processa lista de municípios por CRE para exibir no popup
+    const municipiosPorCre = {};
+    for (const [munUpper, creName] of Object.entries(MUNICIPIOS_CRE)) {
+      if (!municipiosPorCre[creName]) {
+        municipiosPorCre[creName] = [];
+      }
+      const munTitle =
+        munUpper
+          .toLowerCase()
+          .split(" ")
+          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+          .join(" ");
+      municipiosPorCre[creName].push(munTitle);
+    }
+
+    function formatNumber(n) {
+      return (n || 0).toLocaleString("pt-BR");
+    }
+
+    function formatPercent(p) {
+      return (p || 0).toFixed(1).replace(".", ",") + "%";
+    }
+
+    // --------- Mapa Leaflet ----------
+    const map = L.map("map", {
+      scrollWheelZoom: false,
+      zoomControl: true,
+    }).setView([-27.2, -50.9], 7); // centro aproximado de SC
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "© OpenStreetMap",
+    }).addTo(map);
+
+    fetch("{{ url_for('static', filename='data/municipios_sc.geojson') }}")
+      .then((r) => r.json())
+      .then((geojsonData) => {
+        const creColors = {};
+        let creIndex = 0;
+
+        function getCreColor(creName) {
+          if (!CRE_DATA[creName]) {
+            return "#e0e0e0";
+          }
+          const hasAss =
+            (CRE_DATA[creName].total_assessorias || 0) > 0;
+          if (!hasAss) {
+            return getComputedStyle(
+              document.documentElement
+            ).getPropertyValue("--gray-assessorias-zero");
+          }
+          if (!creColors[creName]) {
+            creColors[creName] =
+              GOV_GREENS[creIndex % GOV_GREENS.length];
+            creIndex += 1;
+          }
+          return creColors[creName];
+        }
+
+        function style(feature) {
+          const munName =
+            (feature.properties.NM_MUN || "").toUpperCase();
+          const creName = MUNICIPIOS_CRE[munName];
+          const fillColor = creName ? getCreColor(creName) : "#f0f0f0";
+
+          return {
+            color: "#ffffff",
+            weight: 0.8,
+            fillColor: fillColor,
+            fillOpacity: 0.9,
+          };
+        }
+
+        function buildPopup(creName) {
+          const d = CRE_DATA[creName];
+          if (!d) {
+            return `<div class="popup-cre"><strong>${creName}</strong><br/>Sem dados cadastrados.</div>`;
+          }
+
+          const muniList = (municipiosPorCre[creName] || []).sort();
+          const muniText = muniList.join(", ");
+
+          const percFora = d.perc_fora_aee || 0;
+          const percEscSem = d.perc_escolas_sem_aee || 0;
+
+          return `
+            <div class="popup-cre">
+              <h3>${creName}</h3>
+              <small>Indicadores do público da Educação Especial e das assessorias realizadas.</small>
+              <div class="popup-grid">
+                <div class="popup-metric">
+                  <span class="label">📚 Público EE</span>
+                  <strong>${formatNumber(d.publico_ee)}</strong>
+                </div>
+                <div class="popup-metric">
+                  <span class="label">👩‍🏫 Estudantes no AEE</span>
+                  <strong>${formatNumber(d.estudantes_aee)}</strong>
+                </div>
+                <div class="popup-metric">
+                  <span class="label">🏫 Escolas</span>
+                  <strong>${formatNumber(d.num_escolas)}</strong>
+                </div>
+                <div class="popup-metric">
+                  <span class="label">🏫 com AEE</span>
+                  <strong>${formatNumber(d.num_escolas_aee)}</strong>
+                </div>
+                <div class="popup-metric">
+                  <span class="label">👥 Participantes em assessorias</span>
+                  <strong>${formatNumber(d.participantes)}</strong>
+                </div>
+                <div class="popup-metric">
+                  <span class="label">📌 Assessorias (P / O)</span>
+                  <strong>${formatNumber(
+                    d.assessorias_presenciais
+                  )} / ${formatNumber(d.assessorias_online)}</strong>
+                </div>
+              </div>
+
+              <div class="popup-progress">
+                <span class="label">
+                  Estudantes do público EE <strong>sem matrícula no AEE</strong>:
+                  <strong>${formatNumber(
+                    d.estudantes_fora_aee
+                  )}</strong> (${formatPercent(percFora)})
+                </span>
+                <div class="progress-bar">
+                  <div class="progress-bar-fill" style="width:${Math.min(
+                    percFora,
+                    100
+                  )}%;"></div>
+                </div>
+              </div>
+
+              <div class="popup-progress">
+                <span class="label">
+                  Escolas <strong>sem oferta de AEE</strong>:
+                  <strong>${formatNumber(
+                    d.escolas_sem_aee
+                  )}</strong> (${formatPercent(percEscSem)})
+                </span>
+                <div class="progress-bar">
+                  <div class="progress-bar-fill" style="width:${Math.min(
+                    percEscSem,
+                    100
+                  )}%;"></div>
+                </div>
+              </div>
+
+              ${
+                muniList.length
+                  ? `<div class="popup-municipios">
+                       <strong>Municípios da CRE:</strong> ${muniText}
+                     </div>`
+                  : ""
+              }
+            </div>
+          `;
+        }
+
+        function onEachFeature(feature, layer) {
+          const munName =
+            (feature.properties.NM_MUN || "").toUpperCase();
+          const creName = MUNICIPIOS_CRE[munName];
+          if (!creName) {
+            layer.bindTooltip(
+              munName
+                .toLowerCase()
+                .split(" ")
+                .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+                .join(" "),
+              { sticky: true }
+            );
+            return;
+          }
+
+          layer.on("click", () => {
+            const html = buildPopup(creName);
+            layer.bindPopup(html, { maxWidth: 360 }).openPopup();
+          });
+        }
+
+        L.geoJSON(geojsonData, {
+          style,
+          onEachFeature,
+        }).addTo(map);
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar GeoJSON:", err);
+      });
+
+    // --------- Cards de síntese ----------
+    function renderSummaryCards() {
+      const container = document.getElementById("summary-grid");
+      const t = TOTALS;
+
+      const cards = [
+        {
+          label: "Público da Educação Especial",
+          value: formatNumber(t.publico_ee),
+          sub: "Estudantes que pertencem ao público da política de Educação Especial",
+        },
+        {
+          label: "Estudantes no AEE",
+          value: formatNumber(t.estudantes_aee),
+          sub:
+            "Em AEE: " +
+            formatPercent(
+              t.publico_ee > 0
+                ? (t.estudantes_aee / t.publico_ee) * 100
+                : 0
+            ),
+        },
+        {
+          label: "Escolas com AEE",
+          value: formatNumber(t.num_escolas_aee),
+          sub:
+            "Proporção com AEE: " +
+            formatPercent(
+              t.num_escolas > 0
+                ? (t.num_escolas_aee / t.num_escolas) * 100
+                : 0
+            ),
+        },
+        {
+          label: "Total de participantes",
+          value: formatNumber(t.participantes),
+          sub: "Profissionais que receberam assessoria",
+        },
+      ];
+
+      container.innerHTML = cards
+        .map(
+          (c) => `
+        <div class="summary-card">
+          <div class="summary-label">${c.label}</div>
+          <div class="summary-value">${c.value}</div>
+          <div class="summary-sub">${c.sub}</div>
+        </div>
+      `
+        )
+        .join("");
+    }
+
+    renderSummaryCards();
+
+    // --------- Gráficos Chart.js ----------
+    function buildCharts() {
+      const t = TOTALS;
+
+      // Estudantes no AEE x fora do AEE
+      const ctxEst = document
+        .getElementById("chartEstudantes")
+        .getContext("2d");
+      new Chart(ctxEst, {
+        type: "doughnut",
+        data: {
+          labels: ["Com AEE", "Sem AEE"],
+          datasets: [
+            {
+              data: [
+                t.estudantes_aee || 0,
+                t.estudantes_fora_aee || 0,
+              ],
+              backgroundColor: ["#3db44a", "#f5c04f"],
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { boxWidth: 12 },
+            },
+          },
+          maintainAspectRatio: false,
+        },
+      });
+
+      // Escolas com AEE x sem AEE
+      const ctxEsc = document
+        .getElementById("chartEscolas")
+        .getContext("2d");
+      const escSem = t.escolas_sem_aee || 0;
+      new Chart(ctxEsc, {
+        type: "bar",
+        data: {
+          labels: ["Com AEE", "Sem AEE"],
+          datasets: [
+            {
+              data: [t.num_escolas_aee || 0, escSem],
+              backgroundColor: ["#3db44a", "#cccccc"],
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0,
+              },
+            },
+          },
+          maintainAspectRatio: false,
+        },
+      });
+
+      // Assessorias presenciais x online
+      const ctxAss = document
+        .getElementById("chartAssessorias")
+        .getContext("2d");
+      new Chart(ctxAss, {
+        type: "bar",
+        data: {
+          labels: ["Presenciais", "On-line"],
+          datasets: [
+            {
+              data: [
+                t.assessorias_presenciais || 0,
+                t.assessorias_online || 0,
+              ],
+              backgroundColor: ["#3db44a", "#4a90e2"],
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+            },
+          },
+          maintainAspectRatio: false,
+        },
+      });
+    }
+
+    buildCharts();
+  </script>
+</body>
+</html>
