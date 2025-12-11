@@ -331,7 +331,7 @@
   <div class="page-wrapper">
     <header>
       <div class="logos">
-        <img src="img/logo_fcee.png" alt="FCEE" />
+        <img src="static/img/logo_fcee.png" alt="FCEE" />
       </div>
       <div class="title-block">
         <h1>Painel de Assessorias do SAEEX/NAEE - FCEE</h1>
@@ -341,7 +341,7 @@
         </p>
       </div>
       <div class="logos">
-        <img src="img/logo_gov_sc.png" alt="Governo de Santa Catarina" />
+        <img src="static/img/logo_gov_sc.png" alt="Governo de Santa Catarina" />
       </div>
     </header>
 
@@ -468,9 +468,9 @@
     // ---------- Carga dos dados ----------
     async function loadAllData() {
       const [dadosCreText, municipiosCreText, geojsonResp] = await Promise.all([
-        fetch("data/dados_cre.csv").then((r) => r.text()),
-        fetch("data/municipios_por_cre.csv").then((r) => r.text()),
-        fetch("data/municipios_sc.geojson").then((r) => r.json()),
+        fetch("static/data/dados_cre.csv").then((r) => r.text()),
+        fetch("static/data/municipios_por_cre.csv").then((r) => r.text()),
+        fetch("static/data/sc_municipiors.geojson").then((r) => r.json()),
       ]);
 
       const dadosCreRows = parseCsvSemicolon(dadosCreText);
