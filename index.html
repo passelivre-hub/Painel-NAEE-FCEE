@@ -34,9 +34,7 @@
       --gray-assessorias-zero: #b0b0b0;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -97,16 +95,12 @@
     }
 
     @media (max-width: 900px) {
-      main {
-        grid-template-columns: 1fr;
-      }
+      main { grid-template-columns: 1fr; }
       header {
         flex-direction: column;
         align-items: flex-start;
       }
-      .title-block {
-        text-align: left;
-      }
+      .title-block { text-align: left; }
     }
 
     .card {
@@ -124,9 +118,7 @@
       gap: 8px;
     }
 
-    .card h2 span.emoji {
-      font-size: 1.2rem;
-    }
+    .card h2 span.emoji { font-size: 1.2rem; }
 
     .map-container {
       height: 520px;
@@ -170,9 +162,7 @@
     }
 
     @media (max-width: 600px) {
-      .summary-grid {
-        grid-template-columns: 1fr;
-      }
+      .summary-grid { grid-template-columns: 1fr; }
     }
 
     .summary-card {
@@ -253,9 +243,7 @@
       color: var(--accent);
     }
 
-    .popup-cre small {
-      color: var(--text-muted);
-    }
+    .popup-cre small { color: var(--text-muted); }
 
     .popup-grid {
       display: grid;
@@ -276,13 +264,9 @@
       color: var(--text-muted);
     }
 
-    .popup-metric strong {
-      font-size: 0.9rem;
-    }
+    .popup-metric strong { font-size: 0.9rem; }
 
-    .popup-progress {
-      margin-top: 8px;
-    }
+    .popup-progress { margin-top: 8px; }
 
     .popup-progress span.label {
       display: block;
@@ -315,9 +299,7 @@
       color: var(--text-muted);
     }
 
-    .popup-municipios strong {
-      color: var(--text-main);
-    }
+    .popup-municipios strong { color: var(--text-main); }
 
     footer {
       margin-top: 12px;
@@ -428,7 +410,7 @@
   </div>
 
   <script>
-    // ---------- Funções utilitárias ----------
+    // ---------- Utilitários ----------
     function parseCsvSemicolon(text) {
       const lines = text.trim().split(/\r?\n/);
       if (lines.length === 0) return [];
@@ -458,14 +440,14 @@
     }
 
     function titleCase(str) {
-      return str
+      return (str || "")
         .toLowerCase()
         .split(" ")
         .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
         .join(" ");
     }
 
-    // Normaliza texto para chaves: maiúsculo, sem acentos, espaços simples
+    // Normaliza string para chave: maiúsculo, sem acento, espaços simples
     function normalizeKey(str) {
       return (str || "")
         .normalize("NFD")
@@ -473,15 +455,6 @@
         .toUpperCase()
         .replace(/\s+/g, " ")
         .trim();
-    }
-
-    // Remove prefixo "CRE " se existir
-    function stripCrePrefix(str) {
-      let s = (str || "").trim();
-      if (/^CRE\s+/i.test(s)) {
-        s = s.replace(/^CRE\s+/i, "");
-      }
-      return s;
     }
 
     // ---------- Carga dos dados ----------
@@ -495,13 +468,12 @@
       const dadosCreRows = parseCsvSemicolon(dadosCreText);
       const municipiosCreRows = parseCsvSemicolon(municipiosCreText);
 
-      // CREs a partir do dados_cre.csv
       const creBase = {};
       for (const row of dadosCreRows) {
-        const creFullName = (row["CRE"] || "").trim();
-        if (!creFullName) continue;
-        creBase[creFullName] = {
-          cre: creFullName,
+        const creName = (row["CRE"] || "").trim();
+        if (!creName) continue;
+        creBase[creName] = {
+          cre: creName,
           publico_ee: toInt(row["Publico_EE"]),
           num_escolas: toInt(row["Num_Escolas"]),
           num_escolas_aee: toInt(row["Num_Escolas_AEE"]),
@@ -512,12 +484,11 @@
         };
       }
 
-      // mapa: "CAMPOS NOVOS" -> "CRE Campos Novos" (nome completo)
+      // mapa CRE short (CAMPOS NOVOS) -> nome exato da CRE do dados_cre
       const creKeyByShortKey = {};
-      for (const creFullName of Object.keys(creBase)) {
-        const shortName = stripCrePrefix(creFullName); // "Campos Novos"
-        const shortKey = normalizeKey(shortName);      // "CAMPOS NOVOS"
-        creKeyByShortKey[shortKey] = creFullName;
+      for (const creFull of Object.keys(creBase)) {
+        const shortKey = normalizeKey(creFull); // aqui você pode usar só "CAMPOS NOVOS"
+        creKeyByShortKey[shortKey] = creFull;
       }
 
       // mapping municipio -> CRE (nome completo)
@@ -531,16 +502,12 @@
           row["MUNICIPIO"] ||
           row["MUNICÍPIO"] ||
           "";
-        const creShortRaw = row["CRE"] || row["Cre"] || "";
-
+        const creShort = (row["CRE"] || row["Cre"] || "").trim();
         const munName = munRaw.trim();
-        const creShort = creShortRaw.trim();
         if (!munName || !creShort) continue;
 
         const munKey = normalizeKey(munName);
         const creShortKey = normalizeKey(creShort);
-
-        // se achar no mapa de CREs, usa o nome completo; senão, vai com o que veio
         const creFullName = creKeyByShortKey[creShortKey] || creShort;
 
         municipiosCreMap[munKey] = creFullName;
@@ -554,7 +521,7 @@
       return { creBase, municipiosCreMap, municipiosPorCre, geojson: geojsonResp };
     }
 
-    // ---------- Cálculo de indicadores ----------
+    // ---------- Indicadores ----------
     function computeCreWithIndicators(creBase) {
       const creData = {};
       for (const [cre, d] of Object.entries(creBase)) {
@@ -569,8 +536,7 @@
         const escolasSemAEE = Math.max(escolas - escolasAEE, 0);
         const percEscSem = escolas > 0 ? (escolasSemAEE / escolas) * 100 : 0;
 
-        const totalAss =
-          d.assessorias_presenciais + d.assessorias_online;
+        const totalAss = d.assessorias_presenciais + d.assessorias_online;
 
         creData[cre] = {
           cre,
@@ -640,7 +606,7 @@
       return totals;
     }
 
-    // ---------- UI: Resumo + gráficos ----------
+    // ---------- UI: cards + gráficos ----------
     function renderSummaryCards(totals) {
       const container = document.getElementById("summary-grid");
       const cards = [
@@ -692,7 +658,6 @@
     }
 
     function buildCharts(t) {
-      // Estudantes no AEE x fora do AEE
       const ctxEst = document
         .getElementById("chartEstudantes")
         .getContext("2d");
@@ -718,7 +683,6 @@
         },
       });
 
-      // Escolas com AEE x sem AEE
       const ctxEsc = document
         .getElementById("chartEscolas")
         .getContext("2d");
@@ -734,9 +698,7 @@
           ],
         },
         options: {
-          plugins: {
-            legend: { display: false },
-          },
+          plugins: { legend: { display: false } },
           scales: {
             y: {
               beginAtZero: true,
@@ -747,7 +709,6 @@
         },
       });
 
-      // Assessorias presenciais x online
       const ctxAss = document
         .getElementById("chartAssessorias")
         .getContext("2d");
@@ -766,9 +727,7 @@
           ],
         },
         options: {
-          plugins: {
-            legend: { display: false },
-          },
+          plugins: { legend: { display: false } },
           scales: {
             y: {
               beginAtZero: true,
