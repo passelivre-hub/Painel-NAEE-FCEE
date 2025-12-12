@@ -4,7 +4,7 @@ CRE Blumenau;0;0;0;0;0;0;0
 CRE Braço do Norte;0;0;0;0;0;0;0
 CRE Brusque;0;0;0;0;0;0;0
 CRE Caçador;0;0;0;0;0;0;0
-CRE Campos Novos;0;0;0;0;0;0;0
+CRE Campos Novos;110;110;110;110;110;110;0111
 CRE Canoinhas;0;0;0;0;0;0;0
 CRE Chapecó;0;0;0;0;0;0;0
 CRE Concórdia;0;0;0;0;0;0;0
@@ -17,7 +17,7 @@ CRE Itajaí;0;0;0;0;0;0;0
 CRE Itapiranga;0;0;0;0;0;0;0
 CRE Ituporanga;0;0;0;0;0;0;0
 CRE Jaraguá do Sul;0;0;0;0;0;0;0
-CRE Joaçaba;0;0;0;0;0;0;0
+CRE Joaçaba;110;110;110;011;110;110;110
 CRE Joinville;0;0;0;0;0;0;0
 CRE Lages;0;0;0;0;0;0;0
 CRE Laguna;0;0;0;0;0;0;0
@@ -36,3 +36,4 @@ CRE Timbó;0;0;0;0;0;0;0
 CRE Tubarão;0;0;0;0;0;0;0
 CRE Videira;0;0;0;0;0;0;0
 CRE Xanxerê;0;0;0;0;0;0;0
+
