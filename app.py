@@ -6,9 +6,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "trocar-esta-chave")
 
-# Arquivos de dados
-DADOS_CRE_FILE = "dados_cre.csv"
-MUNICIPIOS_CRE_FILE = "municipios_por_cre.csv"
+# Caminhos dos arquivos de dados (dentro de static/data)
+DADOS_CRE_FILE = os.path.join("static", "data", "dados_cre.csv")
+MUNICIPIOS_CRE_FILE = os.path.join("static", "data", "municipios_por_cre.csv")
 
 # Lista oficial de CREs (37) - nomes como na SED/ACT
 CRE_LIST = [
@@ -57,6 +57,8 @@ GOV_GREENS = ["#A6CE39", "#3DB44A"]
 
 def ensure_dados_cre_file():
     """Garante que o CSV de dados das CREs exista com todas as CREs zeradas."""
+    os.makedirs(os.path.dirname(DADOS_CRE_FILE), exist_ok=True)
+
     if os.path.exists(DADOS_CRE_FILE):
         return
 
@@ -84,7 +86,7 @@ def load_cre_base():
     with open(DADOS_CRE_FILE, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=";")
         for row in reader:
-            cre = row["CRE"].strip()
+            cre = (row.get("CRE") or "").strip()
             if not cre:
                 continue
 
@@ -104,6 +106,7 @@ def load_cre_base():
                 "Assessorias_Presenciais": to_int(row.get("Assessorias_Presenciais", 0)),
                 "Assessorias_Online": to_int(row.get("Assessorias_Online", 0)),
             }
+
     # Garante que toda CRE da lista esteja presente
     for cre in CRE_LIST:
         if cre not in base:
@@ -284,7 +287,7 @@ def admin():
             }
             rows.append(row)
 
-        # Garante que todas CRE_LIST estão presentes (caso falte alguma)
+        # Garante que todas CRE_LIST estão presentes
         existing_cres = {r["CRE"] for r in rows}
         for cre in CRE_LIST:
             if cre not in existing_cres:
@@ -323,7 +326,6 @@ def admin():
 
     # GET
     base = load_cre_base()
-    # Garante ordenação conforme CRE_LIST
     ordered_rows = [base[cre] for cre in CRE_LIST]
 
     return render_template(
@@ -334,5 +336,4 @@ def admin():
 
 
 if __name__ == "__main__":
-    # Para desenvolvimento local
     app.run(debug=True)
