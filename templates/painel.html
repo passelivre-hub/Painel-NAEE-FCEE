@@ -242,7 +242,6 @@
       height: 170px;
     }
 
-    /* Popup CRE */
     .popup-cre {
       font-size: 0.8rem;
       max-width: 360px;
@@ -432,24 +431,23 @@
   </div>
 
   <script>
-    // Dados injetados pelo Flask
+    // Dados vindos do Flask
     const CRE_DATA = {{ cre_data_json|safe }};
     const TOTALS = {{ totals_json|safe }};
     const MUNICIPIOS_CRE = {{ municipios_cre_json|safe }};
     const GOV_GREENS = {{ gov_greens_json|safe }};
 
-    // Pré-processa lista de municípios por CRE para exibir no popup
+    // Agrupa municípios por CRE para mostrar no popup
     const municipiosPorCre = {};
     for (const [munUpper, creName] of Object.entries(MUNICIPIOS_CRE)) {
       if (!municipiosPorCre[creName]) {
         municipiosPorCre[creName] = [];
       }
-      const munTitle =
-        munUpper
-          .toLowerCase()
-          .split(" ")
-          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-          .join(" ");
+      const munTitle = munUpper
+        .toLowerCase()
+        .split(" ")
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ");
       municipiosPorCre[creName].push(munTitle);
     }
 
@@ -461,11 +459,11 @@
       return (p || 0).toFixed(1).replace(".", ",") + "%";
     }
 
-    // --------- Mapa Leaflet ----------
+    // ---------- Mapa Leaflet ----------
     const map = L.map("map", {
       scrollWheelZoom: false,
       zoomControl: true,
-    }).setView([-27.2, -50.9], 7); // centro aproximado de SC
+    }).setView([-27.2, -50.9], 7);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
@@ -479,19 +477,18 @@
         let creIndex = 0;
 
         function getCreColor(creName) {
-          if (!CRE_DATA[creName]) {
+          const d = CRE_DATA[creName];
+          if (!d) {
             return "#e0e0e0";
           }
-          const hasAss =
-            (CRE_DATA[creName].total_assessorias || 0) > 0;
+          const hasAss = (d.total_assessorias || 0) > 0;
           if (!hasAss) {
             return getComputedStyle(
               document.documentElement
             ).getPropertyValue("--gray-assessorias-zero");
           }
           if (!creColors[creName]) {
-            creColors[creName] =
-              GOV_GREENS[creIndex % GOV_GREENS.length];
+            creColors[creName] = GOV_GREENS[creIndex % GOV_GREENS.length];
             creIndex += 1;
           }
           return creColors[creName];
@@ -499,8 +496,12 @@
 
         function style(feature) {
           const munName =
-            (feature.properties.NM_MUN || "").toUpperCase();
-          const creName = MUNICIPIOS_CRE[munName];
+            (feature.properties.name ||
+              feature.properties.NM_MUN ||
+              feature.properties.description ||
+              "") + "";
+          const munUpper = munName.toUpperCase();
+          const creName = MUNICIPIOS_CRE[munUpper];
           const fillColor = creName ? getCreColor(creName) : "#f0f0f0";
 
           return {
@@ -517,7 +518,7 @@
             return `<div class="popup-cre"><strong>${creName}</strong><br/>Sem dados cadastrados.</div>`;
           }
 
-          const muniList = (municipiosPorCre[creName] || []).sort();
+          const muniList = (municipiosPorCre[creName] || []).slice().sort();
           const muniText = muniList.join(", ");
 
           const percFora = d.perc_fora_aee || 0;
@@ -599,17 +600,21 @@
 
         function onEachFeature(feature, layer) {
           const munName =
-            (feature.properties.NM_MUN || "").toUpperCase();
-          const creName = MUNICIPIOS_CRE[munName];
+            (feature.properties.name ||
+              feature.properties.NM_MUN ||
+              feature.properties.description ||
+              "") + "";
+          const munUpper = munName.toUpperCase();
+          const creName = MUNICIPIOS_CRE[munUpper];
+
           if (!creName) {
-            layer.bindTooltip(
-              munName
-                .toLowerCase()
-                .split(" ")
-                .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-                .join(" "),
-              { sticky: true }
-            );
+            // Município sem mapeamento de CRE: mostra só o nome
+            const prettyName = munName
+              .toLowerCase()
+              .split(" ")
+              .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+              .join(" ");
+            layer.bindTooltip(prettyName, { sticky: true });
             return;
           }
 
@@ -628,7 +633,7 @@
         console.error("Erro ao carregar GeoJSON:", err);
       });
 
-    // --------- Cards de síntese ----------
+    // ---------- Cards de síntese ----------
     function renderSummaryCards() {
       const container = document.getElementById("summary-grid");
       const t = TOTALS;
@@ -683,7 +688,7 @@
 
     renderSummaryCards();
 
-    // --------- Gráficos Chart.js ----------
+    // ---------- Gráficos ----------
     function buildCharts() {
       const t = TOTALS;
 
@@ -785,4 +790,3 @@
   </script>
 </body>
 </html>
-
