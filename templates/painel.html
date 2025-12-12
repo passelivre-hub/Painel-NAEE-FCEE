@@ -472,7 +472,7 @@
       attribution: "© OpenStreetMap",
     }).addTo(map);
 
-    fetch("{{ url_for('static', filename='data/municipios_sc.geojson') }}")
+    fetch("{{ url_for('static', filename='data/sc_municipios.geojson') }}")
       .then((r) => r.json())
       .then((geojsonData) => {
         const creColors = {};
@@ -785,3 +785,4 @@
   </script>
 </body>
 </html>
+
